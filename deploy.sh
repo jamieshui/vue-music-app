@@ -1,7 +1,7 @@
 git add -A
 
 # 修改具体题目编号
-git commit -m "top-list page finished"
+git commit -m "search page finished"
 
 git config --global http.sslVerify "false"
 git config --global --unset http.proxy
