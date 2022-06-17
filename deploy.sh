@@ -1,7 +1,7 @@
 git add -A
 
 # 修改具体题目编号
-git commit -m "singer-detail page finished"
+git commit -m "player page finished"
 
 git config --global http.sslVerify "false"
 git config --global --unset http.proxy
