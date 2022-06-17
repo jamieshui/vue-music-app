@@ -11,13 +11,57 @@
         <div class="search-input-wrapper">
           <search-input
               v-model="query"
-              placeholder="搜索歌曲"></search-input>
+              placeholder="搜索歌曲"
+          ></search-input>
+        </div>
+        <div v-show="!query">
+          <switches
+              :items="['最近播放', '搜索历史']"
+              v-model="currentIndex"
+          ></switches>
+          <div class="list-wrapper">
+            <scroll
+                v-if="currentIndex===0"
+                class="list-scroll"
+                ref="scrollRef"
+            >
+              <div class="list-inner">
+                <song-list
+                    :songs="playHistory"
+                    @select="selectSongBySongList"
+                >
+                </song-list>
+              </div>
+            </scroll>
+            <scroll
+                v-if="currentIndex===1"
+                class="list-scroll"
+                ref="scrollRef"
+            >
+              <div class="list-inner">
+                <search-list
+                    :searches="searchHistory"
+                    :show-delete="false"
+                    @select="addQuery"
+                ></search-list>
+              </div>
+            </scroll>
+          </div>
         </div>
         <div class="search-result" v-show="query">
           <suggest
               :query="query"
-              :show-singer="false"></suggest>
+              :show-singer="false"
+              @select-song="selectSongBySuggest"
+          >
+          </suggest>
         </div>
+        <message ref="messageRef">
+          <div class="message-title">
+            <i class="icon-ok"></i>
+            <span class="text">1首歌曲已经添加到播放列表</span>
+          </div>
+        </message>
       </div>
     </transition>
   </teleport>
@@ -26,31 +70,94 @@
 <script>
 import SearchInput from '@/components/search/search-input'
 import Suggest from '@/components/search/suggest'
-import { ref } from 'vue'
+import Switches from '@/components/base/switches/switches'
+import Scroll from '@/components/base/scroll/scroll'
+import SongList from '@/components/base/song-list/song-list'
+import SearchList from '@/components/base/search-list/search-list'
+import Message from '@/components/base/message/message'
+import { ref, computed, nextTick, watch } from 'vue'
+import { useStore } from 'vuex'
+import useSearchHistory from '@/components/search/use-search-history'
 
 export default {
   name: 'add-song',
   components: {
+    SearchInput,
     Suggest,
-    SearchInput
+    Switches,
+    Scroll,
+    SongList,
+    SearchList,
+    Message
   },
-  setup() {
+  setup () {
     const visible = ref(false)
     const query = ref('')
+    const currentIndex = ref(0)
+    const scrollRef = ref(null)
+    const messageRef = ref(null)
 
-    function show() {
+    const store = useStore()
+    const searchHistory = computed(() => store.state.searchHistory)
+    const playHistory = computed(() => store.state.playHistory)
+
+    const { saveSearch } = useSearchHistory()
+
+    watch(query, async () => {
+      await nextTick()
+      refreshScroll()
+    })
+
+    async function show () {
       visible.value = true
+
+      await nextTick()
+      refreshScroll()
     }
 
-    function hide() {
+    function hide () {
       visible.value = false
+    }
+
+    function refreshScroll () {
+      scrollRef.value.scroll.refresh()
+    }
+
+    function addQuery (s) {
+      query.value = s
+    }
+
+    function selectSongBySongList ({ song }) {
+      addSong(song)
+    }
+
+    function selectSongBySuggest (song) {
+      addSong(song)
+      saveSearch(query.value)
+    }
+
+    function addSong (song) {
+      store.dispatch('addSong', song)
+      showMessage()
+    }
+
+    function showMessage () {
+      messageRef.value.show()
     }
 
     return {
       visible,
       query,
+      scrollRef,
+      messageRef,
+      currentIndex,
+      searchHistory,
+      playHistory,
       show,
-      hide
+      hide,
+      addQuery,
+      selectSongBySongList,
+      selectSongBySuggest
     }
   }
 }
